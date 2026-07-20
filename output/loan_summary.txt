@@ -10,12 +10,12 @@ Interest Type             : Floating
 Starting Interest Rate    : 7.25%
 Tenure (years)            : 20
 ------------------------------------------------------------
-Total Interest Paid       : Rs. 3,783,002.53
-Total Principal Paid      : Rs. 12,082,719.13
+Total Interest Paid       : Rs. 9,079,406.06
+Total Principal Paid      : Rs. 12,082,719.19
 Total Customer Contribution: Rs. 1,342,524.35
 Total Bank Contribution    : Rs. 12,082,719.11
 ------------------------------------------------------------
-Loan Closure Date         : 2038-08-01
-Effective Loan Duration   : 146 months (12.2 years)
-Average EMI (post start)  : Rs. 61,019.22
+Loan Closure Date         : 2046-06-01
+Effective Loan Duration   : 240 months (20.0 years)
+Average EMI (post start)  : Rs. 89,291.67
 ============================================================

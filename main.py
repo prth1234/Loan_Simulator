@@ -75,11 +75,45 @@ BANK_NAME: str = "Your Bank"
 
 # ---- Loan ----
 # You've already self-paid the first 10% (Booking 5% + Within 15 Days 5% =
-# 10% of the Sale Consideration, ~Rs. 13.43L) out of pocket. The bank now
-# funds 100% of everything from here on — i.e. the remaining 90% of the
-# Sale Consideration.
-LOAN_AMOUNT: float = 12_082_719.13        # 90% of Sale Consideration (remaining amount, fully bank-funded)
-TOTAL_LOAN_REQUIRED: float = LOAN_AMOUNT  # amount actually to be drawn down
+# 10% of the Sale Consideration, ~Rs. 13.43L) out of pocket.
+
+# Customer self-funds (pays 100% out of pocket, Rs.0 bank disbursement) every
+# milestone whose CUMULATIVE percentage falls at or below this value. The
+# loan/bank disbursement only starts from the first milestone that pushes the
+# cumulative percentage past this threshold. Set to 0 to disable (loan starts
+# from the very first milestone).
+CUSTOMER_ONLY_UPTO_PERCENT: float = 10.0  # Booking (5%) + Within 15 Days (5%) = 10% (already self-paid)
+
+# ---- Extra Self-Funded Amount Paid Directly to the Builder ----
+# You are taking ONLY the 20-year tenure option, and paying part of certain
+# installments directly to Godrej instead of drawing 100% from the bank:
+#   - The 3rd milestone ("Within 90 Days") is still paid 100% by the bank.
+#   - From the 4th milestone ("Excavation Completion") onward, you pay
+#     EXTRA_SELF_FUND_SHARE_PERCENT of each demand directly to the builder,
+#     and the bank covers the rest -- until EXTRA_SELF_FUND_POOL is used up.
+#   - Once the pool is exhausted, every remaining milestone reverts to
+#     100% bank-funded.
+#
+# LOAN_AMOUNT is DERIVED from this pool, not typed in separately (see the
+# formula right below): TOTAL amount still to be funded after your initial
+# 10% self-pay = LOAN_AMOUNT + EXTRA_SELF_FUND_POOL, and that TOTAL is held
+# constant. So whatever you set EXTRA_SELF_FUND_POOL to, LOAN_AMOUNT
+# automatically shrinks or grows to make up the rest -- what you ultimately
+# have to pay in total never changes, only the bank/you split does.
+EXTRA_SELF_FUND_POOL: float = 0.0    # Rs. 10,00,000 — the amount you're covering directly, out of the total still owed
+EXTRA_SELF_FUND_START_INDEX: int = 4         # 1-based milestone position where this extra self-funding begins (4 = "Excavation Completion")
+EXTRA_SELF_FUND_SHARE_PERCENT: float = 25.0  # % of each demand (from the start index onward) you pay directly to the builder, until the pool runs out
+
+# Total still to be funded after the initial CUSTOMER_ONLY_UPTO_PERCENT
+# self-pay -- this is the fixed pie that LOAN_AMOUNT and EXTRA_SELF_FUND_POOL
+# always split between them.
+TOTAL_REMAINING_TO_FUND: float = PROPERTY_PRICE * (100.0 - CUSTOMER_ONLY_UPTO_PERCENT) / 100.0
+
+# LOAN_AMOUNT = whatever's left of TOTAL_REMAINING_TO_FUND after your
+# EXTRA_SELF_FUND_POOL. Change EXTRA_SELF_FUND_POOL above and this updates
+# automatically -- you never need to hand-edit LOAN_AMOUNT yourself.
+LOAN_AMOUNT: float = TOTAL_REMAINING_TO_FUND - EXTRA_SELF_FUND_POOL
+TOTAL_LOAN_REQUIRED: float = LOAN_AMOUNT  # amount actually to be drawn down (capped at this ceiling)
 INTEREST_RATE: float = 7.25               # annual %, at loan start
 INTEREST_TYPE: str = "Floating"           # "Floating" or "Fixed"
 TENURE_YEARS: int = 20                    # total tenure, counted from LOAN_START_DATE
@@ -89,16 +123,13 @@ LOAN_START_DATE: date = date(2026, 7, 1)
 FIRST_DISBURSEMENT_DATE: date = date(2026, 7, 1)
 EMI_START_DATE: Optional[date] = None     # None -> auto-set: FIRST_DISBURSEMENT_DATE if FULL_EMI, else the "Possession" milestone date
 
-# Customer self-funds (pays 100% out of pocket, Rs.0 bank disbursement) every
-# milestone whose CUMULATIVE percentage falls at or below this value. The
-# loan/bank disbursement only starts from the first milestone that pushes the
-# cumulative percentage past this threshold. Set to 0 to disable (loan starts
-# from the very first milestone).
-CUSTOMER_ONLY_UPTO_PERCENT: float = 10.0  # Booking (5%) + Within 15 Days (5%) = 10% (already self-paid)
-
 # ---- CLP (Construction Linked Plan) ----
-BANK_SHARE_PERCENT: float = 100.0         # Bank funds 100% of every demand from milestone 3 onward
-CUSTOMER_SHARE_PERCENT: float = 0.0       # No further self-funded portion
+# NOTE: superseded by the milestone-index-based logic above
+# (CUSTOMER_ONLY_UPTO_PERCENT + EXTRA_SELF_FUND_*). Kept only so
+# validate_inputs()'s BANK_SHARE_PERCENT + CUSTOMER_SHARE_PERCENT == 100
+# check still passes; not otherwise used in build_construction_schedule().
+BANK_SHARE_PERCENT: float = 100.0
+CUSTOMER_SHARE_PERCENT: float = 0.0
 DISBURSEMENT_MODE: str = "Milestone-linked"
 PRE_EMI_UNTIL_POSSESSION: bool = False    # No Pre-EMI phase — pay full EMI (principal + interest) from the very first disbursement
 FULL_EMI_AFTER_POSSESSION: bool = True
@@ -144,7 +175,7 @@ prepayments: List[Dict] = []
 # your regular EMI, once the loan enters the Full EMI phase. This is separate
 # from the one-off `prepayments` list above and repeats automatically every
 # month until the loan closes. Set to 0 to disable.
-PREPAY: float = 50000.0                 # e.g. Rs. 1,00,000 extra every month
+PREPAY: float = 0.0                 # e.g. Rs. 1,00,000 extra every month
 PREPAY_START_DATE: Optional[date] = None  # None -> starts automatically from the EMI start date
 
 
@@ -232,22 +263,49 @@ def build_construction_schedule() -> List[Dict]:
     """
     Enrich the raw construction_schedule with computed demand, bank
     contribution, and customer contribution for every milestone.
+
+    Funding rule, applied in order:
+      1. Milestones within CUSTOMER_ONLY_UPTO_PERCENT (Booking + Within 15
+         Days, 10% total): you self-fund 100%, bank pays Rs. 0.
+      2. Milestones after that but before EXTRA_SELF_FUND_START_INDEX (i.e.
+         the "Within 90 Days" milestone, #3): bank pays 100%.
+      3. From EXTRA_SELF_FUND_START_INDEX onward (#4, "Excavation
+         Completion"): you pay EXTRA_SELF_FUND_SHARE_PERCENT of each demand
+         directly to the builder, and the bank covers the rest, until your
+         EXTRA_SELF_FUND_POOL (Rs. 10L) is fully used up.
+      4. Once the extra pool is exhausted, every remaining milestone
+         reverts to 100% bank-funded.
     """
     enriched = []
     cumulative_pct = 0.0
-    for milestone in construction_schedule:
+    extra_pool_remaining = EXTRA_SELF_FUND_POOL
+
+    for idx, milestone in enumerate(construction_schedule, start=1):
         demand_amount = PROPERTY_PRICE * milestone["percentage"] / 100.0
         cumulative_pct += milestone["percentage"]
 
         if cumulative_pct <= CUSTOMER_ONLY_UPTO_PERCENT + 1e-9:
-            # Still within the self-funded portion: customer pays it all,
-            # no bank disbursement / loan drawn yet.
+            # Rule 1: still within the up-front self-funded portion.
             bank_contribution = 0.0
             customer_contribution = demand_amount
+        elif idx < EXTRA_SELF_FUND_START_INDEX:
+            # Rule 2: bank-only milestone before the extra self-fund kicks in
+            # (e.g. the "Within 90 Days" 3rd milestone).
+            bank_contribution = demand_amount
+            customer_contribution = 0.0
+        elif extra_pool_remaining > 0.01:
+            # Rule 3: draw down the extra self-fund pool at the configured
+            # share %, capped by whatever remains in the pool.
+            customer_contribution = min(
+                demand_amount * EXTRA_SELF_FUND_SHARE_PERCENT / 100.0,
+                extra_pool_remaining,
+            )
+            extra_pool_remaining -= customer_contribution
+            bank_contribution = demand_amount - customer_contribution
         else:
-            bank_contribution = min(demand_amount * BANK_SHARE_PERCENT / 100.0,
-                                     TOTAL_LOAN_REQUIRED)
-            customer_contribution = demand_amount - bank_contribution
+            # Rule 4: extra self-fund pool exhausted -- back to 100% bank.
+            bank_contribution = demand_amount
+            customer_contribution = 0.0
 
         enriched.append({
             "milestone": milestone["milestone"],

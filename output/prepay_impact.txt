@@ -1,20 +1,20 @@
 ============================================================
 PREPAY IMPACT: EXTRA MONTHLY PREPAYMENT COMPARISON
 ============================================================
-Extra Monthly Prepayment (PREPAY) : Rs. 50,000.00
+Extra Monthly Prepayment (PREPAY) : Rs. 100,000.00
 ------------------------------------------------------------
 WITHOUT extra PREPAY (baseline):
   Loan Closure Date               : 2046-06-01
   Effective Loan Duration         : 240 months (20.0 years)
-  Total Interest Paid             : Rs. 9,079,406.06
+  Total Interest Paid             : Rs. 8,275,942.16
 ------------------------------------------------------------
 WITH extra PREPAY:
-  Loan Closure Date               : 2038-08-01
-  Effective Loan Duration         : 146 months (12.2 years)
-  Total Interest Paid             : Rs. 3,783,002.53
-  Total Extra Prepaid             : Rs. 7,139,973.05
+  Loan Closure Date               : 2034-09-01
+  Effective Loan Duration         : 99 months (8.2 years)
+  Total Interest Paid             : Rs. 1,255,040.58
+  Total Extra Prepaid             : Rs. 9,506,931.24
 ============================================================
 IMPACT:
-  Loan Finishes Sooner By         : 94 months (7.8 years)
-  Interest Saved                  : Rs. 5,296,403.53
+  Loan Finishes Sooner By         : 141 months (11.8 years)
+  Interest Saved                  : Rs. 7,020,901.58
 ============================================================
