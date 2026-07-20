@@ -1,0 +1,21 @@
+============================================================
+HOME LOAN CLP SIMULATION SUMMARY
+============================================================
+Bank Name                 : Your Bank
+Builder Name               : Godrej
+Property Price (base)     : Rs. 13,425,243.48
+Maintenance/Sinking Fund  : Rs. 279,832.32 (one-time, on possession, not loan-linked)
+Loan Amount               : Rs. 12,082,719.13
+Interest Type             : Floating
+Starting Interest Rate    : 7.25%
+Tenure (years)            : 20
+------------------------------------------------------------
+Total Interest Paid       : Rs. 3,783,002.53
+Total Principal Paid      : Rs. 12,082,719.13
+Total Customer Contribution: Rs. 1,342,524.35
+Total Bank Contribution    : Rs. 12,082,719.11
+------------------------------------------------------------
+Loan Closure Date         : 2038-08-01
+Effective Loan Duration   : 146 months (12.2 years)
+Average EMI (post start)  : Rs. 61,019.22
+============================================================
