@@ -100,7 +100,7 @@ CUSTOMER_ONLY_UPTO_PERCENT: float = 10.0  # Booking (5%) + Within 15 Days (5%) =
 # constant. So whatever you set EXTRA_SELF_FUND_POOL to, LOAN_AMOUNT
 # automatically shrinks or grows to make up the rest -- what you ultimately
 # have to pay in total never changes, only the bank/you split does.
-EXTRA_SELF_FUND_POOL: float = 0.0    # Rs. 10,00,000 — the amount you're covering directly, out of the total still owed
+EXTRA_SELF_FUND_POOL: float = 1000000.0    # Rs. 10,00,000 — the amount you're covering directly, out of the total still owed
 EXTRA_SELF_FUND_START_INDEX: int = 4         # 1-based milestone position where this extra self-funding begins (4 = "Excavation Completion")
 EXTRA_SELF_FUND_SHARE_PERCENT: float = 25.0  # % of each demand (from the start index onward) you pay directly to the builder, until the pool runs out
 
@@ -175,7 +175,7 @@ prepayments: List[Dict] = []
 # your regular EMI, once the loan enters the Full EMI phase. This is separate
 # from the one-off `prepayments` list above and repeats automatically every
 # month until the loan closes. Set to 0 to disable.
-PREPAY: float = 0.0                 # e.g. Rs. 1,00,000 extra every month
+PREPAY: float = 100000.0                 # e.g. Rs. 1,00,000 extra every month
 PREPAY_START_DATE: Optional[date] = None  # None -> starts automatically from the EMI start date
 
 
